@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="pbus"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<channel-type id="status1">
+		<item-type>Contact</item-type>
+		<label>Port 1 Status</label>
+		<description>Contact (OPEN/CLOSED)</description>
+	</channel-type>
+	<channel-type id="status2">
+		<item-type>Contact</item-type>
+		<label>Port 2 Status</label>
+		<description>Contact (OPEN/CLOSED)</description>
+	</channel-type>
+	<channel-type id="status3">
+		<item-type>Contact</item-type>
+		<label>Port 3 Status</label>
+		<description>Contact (OPEN/CLOSED)</description>
+	</channel-type>
+	<channel-type id="status4">
+		<item-type>Contact</item-type>
+		<label>Port 4 Status</label>
+		<description>Contact (OPEN/CLOSED)</description>
+	</channel-type>
+
+	<channel-type id="status-voltage1">
+		<item-type>Contact</item-type>
+		<label>Port 1 Status</label>
+		<description> Voltage signaling (UNPOWERED/POWERED)</description>
+		<state>
+			<options>
+				<option value="OPEN">UNPOWERED</option>
+				<option value="CLOSED">POWERED</option>
+			</options>
+		</state>
+
+	</channel-type>
+	<channel-type id="status-voltage2">
+		<item-type>Switch</item-type>
+		<label>Port 2 Status</label>
+		<description> Voltage detection (UNPOWERED/POWERED)</description>
+		<state>
+			<options>
+				<option value="OPEN">UNPOWERED</option>
+				<option value="CLOSED">POWERED</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<channel-type id="counter1">
+		<item-type>Number</item-type>
+		<label>Port 1 Counter</label>
+		<description>Counter value from port 1</description>
+	</channel-type>
+	<channel-type id="counter2">
+		<item-type>Number</item-type>
+		<label>Port 2 Counter</label>
+		<description>Counter value from port 2</description>
+	</channel-type>
+
+	<channel-type id="raw-value1">
+		<item-type>Number</item-type>
+		<label>Port1 value</label>
+		<description>Raw value from analog input 1</description>
+		<state pattern="%.0f"/>
+	</channel-type>
+	<channel-type id="raw-value2">
+		<item-type>Number</item-type>
+		<label>Port 2 value</label>
+		<description>Raw value from analog input 2</description>
+		<state pattern="%.0f"/>
+	</channel-type>
+
+	<channel-type id="switch1">
+		<item-type>Switch</item-type>
+		<label>Port 1 Relay</label>
+		<description> Switch relay 1 (OFF/ON)</description>
+	</channel-type>
+	<channel-type id="switch2">
+		<item-type>Switch</item-type>
+		<label>Port 2 Relay</label>
+		<description> Switch relay 2 (OFF/ON)</description>
+	</channel-type>
+
+	<channel-type id="3stageOut">
+		<item-type>Number</item-type>
+		<label>3-Stage output</label>
+		<description>A numeric output with values from 0 to 3</description>
+		<state min="0" max="3" step="1" pattern="%d">
+			<options>
+				<option value="0">Off</option>
+				<option value="1">Low</option>
+				<option value="2">Medium</option>
+				<option value="3">High</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<channel-type id="percentage1">
+		<item-type>Number:Dimensionless</item-type>
+		<label>Percentage 1</label>
+		<description>Current percentage</description>
+		<category>Percentage</category>
+	</channel-type>
+	<channel-type id="percentage2">
+		<item-type>Number:Dimensionless</item-type>
+		<label>Percentage 2</label>
+		<description>Current percentage</description>
+		<category>Percentage</category>
+	</channel-type>
+
+	<channel-type id="hand1">
+		<item-type>String</item-type>
+		<label>Port 1 Hand status</label>
+	</channel-type>
+	<channel-type id="hand2">
+		<item-type>String</item-type>
+		<label>Port 2 Hand status</label>
+	</channel-type>
+
+</thing:thing-descriptions>

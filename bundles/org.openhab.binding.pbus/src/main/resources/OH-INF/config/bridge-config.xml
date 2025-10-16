@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0 https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="thing-type:pbus:serialbridge">
+
+		<parameter name="port" type="text" required="true">
+			<limitToOptions>false</limitToOptions>
+			<label>Serial Port</label>
+			<description>Select serial port to access PTMod (COM1, /dev/ttyUSB0, ...)</description>
+			<default>COM3</default>
+		</parameter>
+
+		<parameter name="baudrate" type="integer" required="true">
+			<label>Baud Rate</label>
+			<description>Set the serial port baud rate</description>
+			<default>9600</default>
+			<options>
+				<option value="9600">9600</option>
+				<option value="19200">19200</option>
+				<option value="38400">38400</option>
+				<option value="76800">76800</option>
+			</options>
+		</parameter>
+
+		<parameter name="reconnectionInterval" type="integer" unit="s">
+			<label>Reconnection Interval</label>
+			<description>The interval (in seconds) at which reconnections should be reattempted in case of a communication
+				problem, default 15. If set to 0 or left empty, no reconnections will be attempted.
+			</description>
+			<default>15</default>
+			<advanced>true</advanced>
+		</parameter>
+
+	</config-description>
+
+	<config-description uri="thing-type:pbus:networkbridge">
+
+		<parameter name="address" type="text" required="true">
+			<label>IP Address or Hostname</label>
+			<description>IP Address or hostname of Pbus server</description>
+		</parameter>
+
+		<parameter name="port" type="integer" required="true">
+			<label>Port</label>
+			<description>Network port to communicate with Pbus server
+			</description>
+		</parameter>
+
+		<parameter name="reconnectionInterval" type="integer" unit="s">
+			<label>Reconnection Interval</label>
+			<description>The interval (in seconds) at which reconnections should be reattempted in case of a communication
+				problem default 15. If set to 0 or left empty, no reconnections will be attempted.
+			</description>
+			<default>15</default>
+			<advanced>true</advanced>
+		</parameter>
+
+	</config-description>
+
+</config-description:config-descriptions>

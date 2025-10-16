@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="pbus"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<bridge-type id="serialbridge">
+
+		<label>Pbus Serial Bridge</label>
+		<description>This bridge represents a Pbus Serial-interface (RS485). For easy reading change Thing ID to 1, 2, 3 ... </description>
+
+		<config-description-ref uri="thing-type:pbus:serialbridge"/>
+
+	</bridge-type>
+
+	<bridge-type id="networkbridge">
+
+		<label>Pbus Network Bridge</label>
+		<description>This bridge represents a Pbus connection over TCP/IP</description>
+
+		<config-description-ref uri="thing-type:pbus:networkbridge"/>
+
+	</bridge-type>
+
+</thing:thing-descriptions>

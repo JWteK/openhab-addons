@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0 https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="thing-type:pbus:2c">
+		<parameter name="address" type="text" required="true" readOnly="true">
+			<label>Address</label>
+			<description>The pbus address of the device (Should be detected automatically)</description>
+		</parameter>
+
+		<parameter name="refresh" type="integer" unit="s">
+			<label>Refresh Interval</label>
+			<description>Refresh (in seconds), default 10. If set to 0 or left empty, no refresh will be scheduled</description>
+			<default>10</default>
+			<advanced>true</advanced>
+		</parameter>
+
+		<parameter name="port1Ppu" type="decimal">
+			<label>Port 1 Pulses per unit</label>
+			<description>Set the number of pulses which stands for one unit. Chose one from the list or enter a custom
+				value</description>
+			<default>1</default>
+			<options>
+				<option value="2000">2000</option>
+				<option value="1000">1000</option>
+				<option value="1">1 (Default)</option>
+				<option value="0.01">0.01</option>
+				<option value="0">Custom</option>
+			</options>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="port1PpuCustom" type="decimal">
+			<label>Port 1 Custom Pulses per unit</label>
+			<description>The custom value for number of pulses for one unit. Only valid when Custom is selected</description>
+			<default>1</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="port1Round" type="integer">
+			<label>Port1 Decimal places</label>
+			<description>The number of decimal places</description>
+			<default>2</default>
+			<advanced>true</advanced>
+		</parameter>
+
+		<parameter name="port2Ppu" type="decimal">
+			<label>CH2 Pulses per unit</label>
+			<description>Set the number of pulses which stands for one unit. Chose one from the list or enter a custom
+				value</description>
+			<default>1</default>
+			<options>
+				<option value="2000">2000</option>
+				<option value="1000">1000</option>
+				<option value="1">1 (Default)</option>
+				<option value="0.01">0.01</option>
+				<option value="0">Custom</option>
+			</options>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="port2PpuCustom" type="decimal">
+			<label>Port 2 Custom Pulses per unit</label>
+			<description>The custom value for number of pulses for one unit. Only valid when Custom is selected</description>
+			<default>1</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="port2Round" type="integer">
+			<label>Port 2 Decimal places</label>
+			<description>The number of decimal places</description>
+			<default>2</default>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+	<config-description uri="thing-type:pbus:1portDevice">
+		<parameter name="address" type="text" required="true">
+			<label>Address</label>
+			<description>The pbus address of the device</description>
+		</parameter>
+		<parameter name="refresh" type="integer" unit="s">
+			<label>Refresh Interval</label>
+			<description>Refresh (in seconds), default 0. If set to 0 or left empty, no refresh will be scheduled</description>
+			<default>0</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port1" type="text">
+			<label>Port1 Name</label>
+			<description>The name of Port1</description>
+			<default>Port1</default>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+	<config-description uri="thing-type:pbus:2portDevice">
+		<parameter name="address" type="text" required="true">
+			<label>Address</label>
+			<description>The pbus address of the device</description>
+		</parameter>
+		<parameter name="refresh" type="integer" unit="s">
+			<label>Refresh Interval</label>
+			<description>Refresh (in seconds), default 0. If set to 0 or left empty, no refresh will be scheduled</description>
+			<default>0</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port1" type="text">
+			<label>Port1 Name</label>
+			<description>The name of Port1</description>
+			<default>Port1</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port2" type="text">
+			<label>Port2 Name</label>
+			<description>The name of Port2</description>
+			<default>Port2</default>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+	<config-description uri="thing-type:pbus:4portDevice">
+		<parameter name="address" type="text" required="true">
+			<label>Address</label>
+			<description>The pbus address of the device</description>
+		</parameter>
+		<parameter name="refresh" type="integer" unit="s">
+			<label>Refresh Interval</label>
+			<description>Refresh (in seconds), default 0. If set to 0 or left empty, no refresh will be scheduled</description>
+			<default>0</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port1" type="text">
+			<label>Port1 Name</label>
+			<description>The name of Port1</description>
+			<default>Port1</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port2" type="text">
+			<label>Port2 Name</label>
+			<description>The name of Port2</description>
+			<default>Port2</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port3" type="text">
+			<label>Port3 Name</label>
+			<description>The name of Port3</description>
+			<default>Port3</default>
+			<advanced>true</advanced>
+		</parameter>
+		<parameter name="Port4" type="text">
+			<label>Port4 Name</label>
+			<description>The name of Port4</description>
+			<default>Port4</default>
+			<advanced>true</advanced>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>

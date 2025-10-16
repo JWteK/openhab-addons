@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="pbus"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<!-- 2C ============================================================================================ 2C -->
+	<thing-type id="2c">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2C</label>
+		<description>Pbus 2-port pulse counter (max value 4.294.967.295) </description>
+		<channels>
+			<channel id="port1" typeId="counter1"/>
+			<channel id="port2" typeId="counter2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2c"/>
+
+	</thing-type>
+
+	<!-- DI ============================================================================================ DI -->
+	<thing-type id="2d20">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2D20</label>
+		<description>Pbus 2-port digital input</description>
+		<channels>
+			<channel id="port1" typeId="status1"/>
+			<channel id="port2" typeId="status2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="4d20">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>4D20</label>
+		<description>Pbus 4-port digital input</description>
+		<channels>
+			<channel id="port1" typeId="status1"/>
+			<channel id="port2" typeId="status2"/>
+			<channel id="port3" typeId="status3"/>
+			<channel id="port4" typeId="status4"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:4portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2d42">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2D42</label>
+		<description>Pbus 2-port voltage signaling input 24Vac 10-42Vdc</description>
+		<channels>
+			<channel id="port1" typeId="status-voltage1"/>
+			<channel id="port2" typeId="status-voltage2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2d250">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2D250</label>
+		<description>Pbus 2-port voltage signaling input 24-240 Vac 24-100 Vdc</description>
+		<channels>
+			<channel id="port1" typeId="status-voltage1"/>
+			<channel id="port2" typeId="status-voltage2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<!-- AI ============================================================================================ AI -->
+	<thing-type id="2r1k">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2R1K</label>
+		<description>Pbus 2-port resistor input for LG Ni1000 (RAW value)</description>
+		<channels>
+			<channel id="port1" typeId="raw-value1"/>
+			<channel id="port2" typeId="raw-value2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2u10">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2U10</label>
+		<description>Pbus 2-port analog input 0-10V (RAW value)</description>
+		<channels>
+			<channel id="port1" typeId="raw-value1"/>
+			<channel id="port2" typeId="raw-value2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2p100">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2P100</label>
+		<description>Pbus 2-port resistor input 0-250Ω, Pt100 or Ni100 (RAW value)</description>
+		<channels>
+			<channel id="port1" typeId="raw-value1"/>
+			<channel id="port2" typeId="raw-value2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2i25">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2I25</label>
+		<description>Pbus 2-port analog input 0-25 mA (RAW value)</description>
+		<channels>
+			<channel id="port1" typeId="raw-value1"/>
+			<channel id="port2" typeId="raw-value2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2p1k">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2P1K</label>
+		<description>Pbus 2-port resistor input 0-2500Ω, Pt1000 or Ni1000 (RAW value)</description>
+		<channels>
+			<channel id="port1" typeId="raw-value1"/>
+			<channel id="port2" typeId="raw-value2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2i420">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2I420</label>
+		<description>Pbus 2-port analog input 4-20 mA (RAW value)</description>
+		<channels>
+			<channel id="port1" typeId="raw-value1"/>
+			<channel id="port2" typeId="raw-value2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<!-- DO ============================================================================================ DO -->
+	<thing-type id="2q250">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2Q250</label>
+		<description>Pbus 2-port relay output</description>
+		<channels>
+			<channel id="port1" typeId="switch1"/>
+			<channel id="port2" typeId="switch2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="2q250m">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2Q250M</label>
+		<description>Pbus 2-port relay output with Manual control</description>
+		<channels>
+			<channel id="port1" typeId="switch1"/>
+			<channel id="port2" typeId="switch2"/>
+			<channel id="hand1" typeId="hand1"/>
+			<channel id="hand2" typeId="hand2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
+
+	</thing-type>
+
+	<thing-type id="3qm3">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>3QM3</label>
+		<description>Pbus 1-port 3-stage (0-3) relay output with Manual control</description>
+		<channels>
+			<channel id="port1" typeId="3stageOut"/>
+			<channel id="hand1" typeId="hand1"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:1portDevice"/>
+
+	</thing-type>
+
+	<!-- AO ============================================================================================ AO -->
+
+</thing:thing-descriptions>

@@ -336,9 +336,9 @@
     <module>org.openhab.binding.orvibo</module>
     <module>org.openhab.binding.panasonicbdp</module>
     <module>org.openhab.binding.paradoxalarm</module>
+    <module>org.openhab.binding.pbus</module>
     <module>org.openhab.binding.pegelonline</module>
     <module>org.openhab.binding.pentair</module>
-    <module>org.openhab.binding.phc</module>
     <module>org.openhab.binding.pihole</module>
     <module>org.openhab.binding.pilight</module>
     <module>org.openhab.binding.pioneeravr</module>
@@ -388,6 +388,7 @@
     <module>org.openhab.binding.sensorcommunity</module>
     <module>org.openhab.binding.serial</module>
     <module>org.openhab.binding.serialbutton</module>
+    <module>org.openhab.binding.serialdevices</module>
     <module>org.openhab.binding.shelly</module>
     <module>org.openhab.binding.silvercrestwifisocket</module>
     <module>org.openhab.binding.siemenshvac</module>
