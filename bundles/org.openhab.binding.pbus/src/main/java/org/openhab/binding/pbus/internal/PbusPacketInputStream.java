@@ -49,7 +49,7 @@ public class PbusPacketInputStream {
     }
 
     public byte[] readPacket() throws IOException {
-        logger.debug("Listen for new packacge");
+        logger.warn("Listen for new packet");
         int currentDataByte;
 
         // Lees de seriele data [0-255] totdat er niets meer in de buffer staat [-1]
@@ -67,7 +67,7 @@ public class PbusPacketInputStream {
             } else if (currentAddress == null) {
                 currentAddress = (byte) currentDataByte;
 
-            } else if (currentDataLength == null && currentDataByte <= 8) {
+            } else if (currentDataLength == null && currentDataByte <= 9) {
                 currentDataLength = (byte) currentDataByte;
             } else if (currentDataLength == null) {
                 currentDataLength = 1;
@@ -88,7 +88,7 @@ public class PbusPacketInputStream {
             } else if (((byte) currentDataByte) == PbusPacket.ETX) {
                 byte[] packet = getCurrentPacket();
                 resetCurrentState();
-                logger.warn("Packet received");
+                logger.debug("Packet received");
                 return packet;
             } else {
                 resetCurrentState();

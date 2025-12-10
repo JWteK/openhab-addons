@@ -15,11 +15,14 @@ package org.openhab.binding.pbus.internal.config;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 
 /**
- * The {@link PbusSensorConfig} class represents the configuration of a Pbus Temperature Sensor.
+ * The {@link PbusAOConfig} class represents the configuration of a Pbus Analog Output module.
+ * This is a extension of the refresh config
+ *
+ * Used to limit the amount of messages send when using a slider or simular
  *
  * @author JWteK - Initial contribution
  */
 @NonNullByDefault
-public class PbusSensorConfig {
-    public int refresh;
+public class PbusAOConfig extends PbusBasicConfig {
+    public int debounce;
 }

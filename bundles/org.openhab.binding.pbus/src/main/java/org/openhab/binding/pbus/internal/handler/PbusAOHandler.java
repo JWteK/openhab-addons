@@ -14,13 +14,18 @@ package org.openhab.binding.pbus.internal.handler;
 
 import static org.openhab.binding.pbus.internal.PbusBindingConstants.*;
 
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.binding.pbus.internal.PbusChannelIdentifier;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.pbus.internal.PbusPacket;
-import org.openhab.binding.pbus.internal.config.PbusPositioningConfig;
+import org.openhab.binding.pbus.internal.config.PbusAOConfig;
 import org.openhab.core.library.types.PercentType;
+import org.openhab.core.library.types.StringType;
+import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -42,68 +47,157 @@ public class PbusAOHandler extends PbusThingHandler {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Set.of(THING_2Y10S, THING_2Y10M, THING_2Y420);
+    // Things handled by this class
+    public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Set.of(THING_2Y10, THING_2Y10M, THING_2Y420);
 
-    private @NonNullByDefault({}) PbusPositioningConfig config;
+    private @NonNullByDefault({}) PbusAOConfig config;
+
+    private @Nullable ScheduledFuture<?> levelTimer;
 
     public PbusAOHandler(Thing thing) {
         super(thing);
     }
 
+    // Called by OH core when creating thing
     @Override
     public void initialize() {
-        this.config = getConfigAs(PbusPositioningConfig.class);
 
+        // Run Initialize of ThingHandler
         super.initialize();
+
+        config = getConfigAs(PbusAOConfig.class);
+
+        // Start refresh job if needed
+        int interval = Math.max(0, config.refresh);
+        logger.debug("Try to start Refresh job");
+        startRefreshJob(interval);
     }
 
     @Override
-    public void handleCommand(ChannelUID channelUID, Command command) {
+    public void dispose() {
+        if (levelTimer != null) {
+            levelTimer.cancel(false);
+            levelTimer = null;
+        }
+        // Run dispose of ThingHandler
+        super.dispose();
+    }
 
+    // Called by OH core on refresh tick and manual refresh
+    @Override
+    protected void performRefreshTick() {
+
+        // Check if bridge and handler OK
         PbusBridgeHandler bridge = getPbusBridgeHandler();
         if (bridge == null) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
             return;
         }
 
-        if (command instanceof RefreshType) {
-
-            // Haal handstatus op van moduul
-            byte addr = getModuleAddress().getAddress();
-            PbusPacket packet = new PbusPacket(addr, HAND_STATUS_REQUEST, ALL_CHANNELS);
-            bridge.sendPacket(packet.getBytes());
-
-        } else if (command instanceof PercentType percentCommand) {
-
-            // Stuur ON/OFF command naar moduleadres
-            byte addr = getModuleAddress().getAddress();
-            PbusPacket packet = new PbusPacket(addr, SET_VALUE, ALL_CHANNELS, percentCommand.byteValue());
-            bridge.sendPacket(packet.getBytes());
-
-        } else {
-            logger.debug("The command '{}' is not supported by this handler.", command.getClass());
-        }
+        // Request feedback status
+        byte addr = getModuleAddress().getAddress();
+        PbusPacket packet = new PbusPacket(addr, FEEDBACK_REQUEST);
+        bridge.sendPacket(packet.getBytes());
+        logger.debug("Sent Feedback Request packet to {}", addr);
     }
 
+    // Called by OH core from UI or Rule
     @Override
-    protected void performRefreshTick() {
-        // nog niet geïmplementeerd
+    public void handleCommand(ChannelUID channelUID, Command command) {
+
+        // Check if bridge and handler OK
+        PbusBridgeHandler bridge = getPbusBridgeHandler();
+        if (bridge == null) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
+            return;
+        }
+
+        switch (command) {
+
+            case RefreshType refreshType -> {
+                performRefreshTick();
+            }
+            case PercentType percent -> {
+
+                byte addr = getModuleAddress().getAddress();
+                int delay = config.debounce;
+                byte percVal = (byte) Math.min(240, Math.max(0, Math.round(percent.byteValue() * 2.4f)));
+
+                // Cancel running tast
+                if (levelTimer != null) {
+                    levelTimer.cancel(false);
+                }
+
+                // Make scheduled task (Code betweem {} is task)
+                levelTimer = scheduler.schedule(() -> {
+
+                    PbusPacket packet = new PbusPacket(addr, SET_VALUE, percVal);
+                    bridge.sendPacket(packet.getBytes());
+
+                }, delay, TimeUnit.MILLISECONDS);
+
+            }
+            default -> logger.debug("The command '{}' is not supported by this handler.", command.getClass());
+
+        }
     }
 
     @Override
     public void onPacketReceived(byte[] packet) {
 
-        if (packet[0] == PbusPacket.STX && packet.length >= 5) {
-            byte address = packet[2];
-            byte command = packet[4];
+        byte address = packet[1];
+        byte command = packet[3];
 
-            if ((command == HAND_STATUS_ANSWER) && packet.length >= 8) {
-                byte channel = packet[5];
-                byte dimValue = packet[7];
+        // Check if module must be removed, remove module from listners and set to offline
+        if ((packet.length == 7) & (command == MODULE_REMOVED)) {
+            PbusBridgeHandler bridge = getPbusBridgeHandler();
+            if (bridge != null) {
+                // Remove from packetlistners
+                bridge.unregisterPacketListener(address);
+            }
+            // Set to OffLine (Returns to OnLine after restart, so remove manualy)
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "(Remove thing manualy)");
+            return;
+        }
 
-                PbusChannelIdentifier pbusChannelIdentifier = new PbusChannelIdentifier(address, channel);
-                PercentType state = new PercentType(dimValue);
-                updateState(getModuleAddress().getChannelId(pbusChannelIdentifier), state);
+        // Check if length is correct
+        if (packet.length != 8) {
+            logger.debug("onPacketReceived called with wrong length for {}", getThing().getUID());
+            return;
+        }
+
+        // Check if command is correct
+        if (command != FEEDBACK_ANSWER) {
+            logger.debug("onPacketReceived called for {} with wrong command", getThing().getUID());
+            return;
+        }
+
+        List<Channel> channels = getThing().getChannels();
+
+        logger.debug("Received packet ({} bytes) for thing {} with {} channels", packet.length, getThing().getUID(),
+                channels.size());
+
+        // Get values from received data
+        int feedback1 = (packet[4] & 0xFF);
+        int feedback2 = (packet[5] & 0xFF);
+
+        // Mode (Bit 4) 0=AUTO 1=HAND
+        boolean mode1 = (feedback1 & 16) != 0;
+        boolean mode2 = (feedback2 & 16) != 0;
+
+        // Loop through all channels
+        for (Channel channel : channels) {
+
+            ChannelUID chUid = channel.getUID();
+            String chId = chUid.getId();
+
+            switch (chId) {
+                case "mode1" -> {
+                    updateState(chUid, new StringType(mode1 ? "HAND" : "AUTO"));
+                }
+                case "mode2" -> {
+                    updateState(chUid, new StringType(mode2 ? "HAND" : "AUTO"));
+                }
             }
         }
     }

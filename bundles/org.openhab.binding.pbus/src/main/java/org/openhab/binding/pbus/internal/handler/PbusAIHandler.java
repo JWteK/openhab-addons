@@ -12,21 +12,15 @@
  */
 package org.openhab.binding.pbus.internal.handler;
 
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.SENSOR_STATUS_ANSWER;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.SENSOR_STATUS_REQUEST;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.THING_2I25;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.THING_2I420;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.THING_2P100;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.THING_2P1K;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.THING_2R1K;
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.THING_2U10;
+import static org.openhab.binding.pbus.internal.PbusBindingConstants.*;
 
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.pbus.internal.PbusPacket;
-import org.openhab.binding.pbus.internal.config.PbusSensorConfig;
+import org.openhab.binding.pbus.internal.config.PbusBasicConfig;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
@@ -50,121 +44,137 @@ public class PbusAIHandler extends PbusThingHandler {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    /** Ondersteunde sensortypen (thing types) */
+    // Things handled by this class
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Set.of(THING_2R1K, THING_2U10, THING_2P100,
             THING_2I25, THING_2P1K, THING_2I420);
+
+    private @Nullable PbusBasicConfig config;
 
     public PbusAIHandler(Thing thing) {
         super(thing);
     }
 
-    // Wordt aangeroepen door OH aanmaken van thing
+    // Called by OH core when creating thing
     @Override
     public void initialize() {
-        // Basis-initialisatie uitvoeren
+
+        // Basic init
         super.initialize();
 
-        // Config ophalen
-        PbusSensorConfig config = getConfigAs(PbusSensorConfig.class);
+        // Get config
+        config = getConfigAs(PbusBasicConfig.class);
 
-        // Haal interval en start refresh
+        // Start refresh job if needed
         int interval = Math.max(0, config.refresh);
         logger.debug("Try to start Refresh job");
         startRefreshJob(interval);
     }
 
-    // Wordt aangeroepen door OH refresh of commando vanuit UI of rules
-    @Override
-    public void handleCommand(ChannelUID channelUID, Command command) {
-
-        // Alleen RefreshType commando’s afhandelen
-        if (!(command instanceof RefreshType)) {
-            return;
-        }
-        performRefreshTick();
-    }
-
+    // Called by OH core on refresh tick and manual refresh
     @Override
     protected void performRefreshTick() {
 
-        // Bridge ophalen
+        // Check if bridge and handler OK
         PbusBridgeHandler bridge = getPbusBridgeHandler();
-
-        // Geen bridge = offline status
         if (bridge == null) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
             return;
         }
 
-        // Statusrequest sturen naar moduleadres
+        // Request Input status
         byte addr = getModuleAddress().getAddress();
-        PbusPacket packet = new PbusPacket(addr, SENSOR_STATUS_REQUEST);
-
+        PbusPacket packet = new PbusPacket(addr, ANALOG_STATUS_REQUEST);
         bridge.sendPacket(packet.getBytes());
-        logger.trace("Sent SensorStatusRequest packet to {}", addr);
+        logger.trace("Sent ANALOG_STATUS_REQUEST packet to {}", addr);
     }
 
-    /**
-     * Wordt aangeroepen wanneer er een pakket met data is ontvangen.
-     * Elk kanaal wordt bijgewerkt afhankelijk van het type:
-     */
+    // Called by OH core from UI or Rule
+    @Override
+    public void handleCommand(ChannelUID channelUID, Command command) {
+
+        // Check if bridge and handler OK
+        PbusBridgeHandler bridge = getPbusBridgeHandler();
+        if (bridge == null) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
+            return;
+        }
+
+        switch (command) {
+
+            case RefreshType refreshType -> {
+                performRefreshTick();
+            }
+            default -> logger.debug("The command '{}' is not supported by this handler.", command.getClass());
+        }
+    }
+
+    // Called when a data package is arrived for this handler
     @Override
     public void onPacketReceived(byte[] packet) {
 
-        // Controleren of het commando klopt
-        if (packet[3] != SENSOR_STATUS_ANSWER) {
+        byte address = packet[1];
+        byte command = packet[3];
+
+        // Check if module must be removed, remove module from listners and set to offline
+        if ((packet.length == 7) & (command == MODULE_REMOVED)) {
+            PbusBridgeHandler bridge = getPbusBridgeHandler();
+            if (bridge != null) {
+                // Remove from packetlistners
+                bridge.unregisterPacketListener(address);
+            }
+            // Set to OffLine (Returns to OnLine after restart, so remove manualy)
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "(Remove thing manualy)");
+            return;
+        }
+
+        // Check if length is correct
+        if (packet.length != 10) {
+            logger.debug("onPacketReceived called with wrong length for {}", getThing().getUID());
+            return;
+        }
+
+        // Check if command is correct
+        if (command != ANALOG_STATUS_ANSWER) {
             logger.debug("onPacketReceived called for {} with wrong command", getThing().getUID());
             return;
         }
 
+        // Get all channels from thing
         List<Channel> channels = getThing().getChannels();
 
         logger.debug("Received packet ({} bytes) for thing {} with {} channels", packet.length, getThing().getUID(),
                 channels.size());
 
+        // loop through all channels
         for (int chIdx = 0; chIdx < channels.size(); chIdx++) {
 
             Channel channel = channels.get(chIdx);
-            ChannelUID uid = channel.getUID();
-            String itemType = channel.getAcceptedItemType();
+            ChannelUID chUid = channel.getUID();
 
+            String itemType = channel.getAcceptedItemType();
             switch (itemType) {
 
                 case "Number": {
-                    // Elke poort heeft 2 bytes in packet[4 + (chIdx * 2)] en packet[5 + (chIdx * 2)]
-                    int byteIndex = 4 + (chIdx * 2);
-                    if (byteIndex + 1 < packet.length) {
+                    // Each channel has 2 bytes in packet[4 + (chIdx * 2)]
+                    int newValue = ((packet[4 + (chIdx * 2)] & 0xFF) << 8) | (packet[5 + (chIdx * 2)] & 0xFF);
 
-                        // Combineer 2 bytes (high + low)
-                        int analogValue = ((packet[byteIndex] & 0xFF) << 8) | (packet[byteIndex + 1] & 0xFF);
+                    // If thing is 2r1k get 12 bits otherwise get 13 bits of value
+                    if (chUid.toString().contains("2r1k")) {
+                        newValue = newValue & 0x0FFF;
+                    } else
+                        newValue = newValue & 0x1FFF;
 
-                        // Zet bit 15 op 0
-                        analogValue = analogValue & 0x7FFF;
-
-                        // Schuif de 13 bits waarde 2 plaatsen op en voeg een 0 in
-                        analogValue = analogValue >>> 2;
-
-                        // Als Moduul een 2r1k (12 bits) is dan 1 plaats extra opschuiven zodat alles 13 bits wordt
-                        if (uid.toString().contains("2r1k")) {
-                            analogValue = analogValue >>> 1;
-                        }
-
-                        updateState(uid, new DecimalType(analogValue));
-                        logger.debug("Updated Number channel {} (bytes[{}-{}]) → {}", uid, byteIndex, byteIndex + 1,
-                                analogValue);
-
-                    } else {
-                        logger.warn("Packet too short for Number port {}", chIdx);
-                    }
+                    updateState(chUid, new DecimalType(newValue));
+                    logger.debug("Updated Number channel {} → {}", chUid, newValue);
                     break;
                 }
 
                 case null:
-                    logger.warn("No Itemtype for channel {}", uid);
+                    logger.warn("No Item Type for channel {}", chUid);
                     break;
 
                 default:
-                    logger.warn("Unsupported item type '{}' for channel {}", itemType, uid);
+                    logger.warn("Unsupported Item Type '{}' for channel {}", itemType, chUid);
                     break;
             }
         }

@@ -19,7 +19,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
  * Je geeft gewoon het adres en de data-bytes mee.
  *
  * Voorbeeld:
- * new PbusPacket(addr, SENSOR_STATUS_REQUEST, channel);
+ * new PbusPacket(addr, DIGITAL_STATUS_REQUEST, channel);
  * new PbusPacket(addr, COMMAND_POSITION, channel, percent, speedHi, speedLo);
  *
  * @author JWteK - Initial contribution
@@ -55,7 +55,7 @@ public class PbusPacket {
         return packet;
     }
 
-    /** Bereken CRC-byte (zelfde logica als vroeger) */
+    /** Bereken CRC-byte */
     public static byte computeCRCByte(byte[] packet) {
         int crc = 0;
         for (int i = 0; i < packet.length - 2; i++) {

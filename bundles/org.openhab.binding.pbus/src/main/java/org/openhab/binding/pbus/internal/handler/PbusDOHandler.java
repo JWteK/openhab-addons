@@ -14,11 +14,13 @@ package org.openhab.binding.pbus.internal.handler;
 
 import static org.openhab.binding.pbus.internal.PbusBindingConstants.*;
 
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.pbus.internal.PbusPacket;
-import org.openhab.binding.pbus.internal.config.PbusRelayConfig;
+import org.openhab.binding.pbus.internal.config.PbusBasicConfig;
 import org.openhab.core.library.types.DecimalType;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.StringType;
@@ -44,30 +46,54 @@ public class PbusDOHandler extends PbusThingHandler {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    // Things handled by this class
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Set.of(THING_2Q250, THING_2Q250M, THING_3QM3);
+
+    private @Nullable PbusBasicConfig config;
 
     public PbusDOHandler(Thing thing) {
         super(thing);
     }
 
-    // Wordt aangeroepen door OH aanmaken van thing
+    // Called by OH core when creating thing
     @Override
     public void initialize() {
-        // Basis-initialisatie uitvoeren
+
+        // Basic init
         super.initialize();
 
-        // Config ophalen
-        PbusRelayConfig config = getConfigAs(PbusRelayConfig.class);
+        // Get config
+        config = getConfigAs(PbusBasicConfig.class);
 
-        // Haal interval en start refresh
+        // Start refresh job if needed
         int interval = Math.max(0, config.refresh);
         logger.debug("Try to start Refresh job");
         startRefreshJob(interval);
     }
 
+    // Called by OH core on refresh tick and manual refresh
+    @Override
+    protected void performRefreshTick() {
+
+        // Check if bridge and handler OK
+        PbusBridgeHandler bridge = getPbusBridgeHandler();
+        if (bridge == null) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
+            return;
+        }
+
+        // Request feedback status
+        byte addr = getModuleAddress().getAddress();
+        PbusPacket packet = new PbusPacket(addr, FEEDBACK_REQUEST);
+        bridge.sendPacket(packet.getBytes());
+        logger.trace("Sent Feedback Request packet to {}", addr);
+    }
+
+    // Called by OH core from UI or Rule
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
 
+        // Check if bridge and handler OK
         PbusBridgeHandler bridge = getPbusBridgeHandler();
         if (bridge == null) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
@@ -83,12 +109,9 @@ public class PbusDOHandler extends PbusThingHandler {
         };
 
         switch (command) {
+
             case RefreshType refreshType -> {
-
-                // Haal feedback op van moduul
-                PbusPacket packet = new PbusPacket(addr, HAND_STATUS_REQUEST);
-                bridge.sendPacket(packet.getBytes());
-
+                performRefreshTick();
             }
             case OnOffType onOffType -> {
 
@@ -102,7 +125,6 @@ public class PbusDOHandler extends PbusThingHandler {
                 bridge.sendPacket(packet.getBytes());
 
                 logger.debug("Setting ON/OFF command output to state {}", comm);
-
             }
             case DecimalType decimalType -> {
 
@@ -119,66 +141,86 @@ public class PbusDOHandler extends PbusThingHandler {
         }
     }
 
-    @Override
-    protected void performRefreshTick() {
-
-        // Bridge ophalen
-        PbusBridgeHandler bridge = getPbusBridgeHandler();
-
-        // Geen bridge = offline status
-        if (bridge == null) {
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
-            return;
-        }
-
-        // Statusrequest sturen naar moduleadres
-        byte addr = getModuleAddress().getAddress();
-        PbusPacket packet = new PbusPacket(addr, HAND_STATUS_REQUEST);
-
-        bridge.sendPacket(packet.getBytes());
-        logger.trace("Sent SensorStatusRequest packet to {}", addr);
-    }
-
+    // Called when a data package is arrived for this handler
     @Override
     public void onPacketReceived(byte[] packet) {
 
-        // Zoek het juiste channel
-        Channel feedback = getThing().getChannel("hand");
+        byte address = packet[1];
+        byte command = packet[3];
 
-        if (packet[0] == PbusPacket.STX && packet.length >= 5) {
+        // Check if module must be removed, remove module from listners and set to offline
+        if ((packet.length == 7) & (command == MODULE_REMOVED)) {
+            PbusBridgeHandler bridge = getPbusBridgeHandler();
+            if (bridge != null) {
+                // Remove from packetlistners
+                bridge.unregisterPacketListener(address);
+            }
+            // Set to OffLine (Returns to OnLine after restart, so remove manualy)
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "(Remove thing manualy)");
+            return;
+        }
 
-            byte address = packet[1];
-            byte command = packet[3];
+        // Check if length is correct
+        if (packet.length != 8) {
+            logger.debug("onPacketReceived called with wrong length for {}", getThing().getUID());
+            return;
+        }
 
-            // Hand status voor beide kanalen tegelijk
-            if (command == HAND_STATUS_ANSWER && packet.length >= 7) {
+        // Check if command is correct
+        if (command != FEEDBACK_ANSWER) {
+            logger.debug("onPacketReceived called for {} with wrong command", getThing().getUID());
+            return;
+        }
 
-                int value = (packet[4] & 0xFF) << 8 | (packet[5] & 0xFF);
+        List<Channel> channels = getThing().getChannels();
 
-                // Bepaal bits (LSB = bit 0)
-                boolean hand1 = (value & (1 << 0)) != 0;
-                boolean hand2 = (value & (1 << 1)) != 0;
+        logger.debug("Received packet ({} bytes) for thing {} with {} channels", packet.length, getThing().getUID(),
+                channels.size());
 
-                boolean handStatus1 = (value & (1 << 8)) != 0;
-                boolean handStatus2 = (value & (1 << 9)) != 0;
+        // Get values from received data
+        int feedback1 = (packet[4] & 0xFF);
+        int feedback2 = (packet[5] & 0xFF);
 
-                boolean autoStatus1 = (value & (1 << 15)) != 0;
-                boolean autoStatus2 = (value & (1 << 14)) != 0;
+        // Mode (Bit 4) 0=AUTO 1=HAND
+        boolean mode1 = (feedback1 & 16) != 0;
+        boolean mode2 = (feedback2 & 16) != 0;
 
-                // 1️⃣ Mode-channels bijwerken
-                updateState(new ChannelUID(getThing().getUID(), "hand1"), new StringType(hand1 ? "HAND" : "AUTO"));
-                updateState(new ChannelUID(getThing().getUID(), "hand2"), new StringType(hand2 ? "HAND" : "AUTO"));
+        // Loop through all channels
+        for (Channel channel : channels) {
 
-                // 2️⃣ Status-channels bijwerken
-                OnOffType port1State = hand1 ? (handStatus1 ? OnOffType.ON : OnOffType.OFF)
-                        : (autoStatus1 ? OnOffType.ON : OnOffType.OFF);
+            ChannelUID chUid = channel.getUID();
+            String modType = chUid.getThingUID().toString().split(":")[1];
+            String chId = chUid.getId();
 
-                OnOffType port2State = hand2 ? (handStatus2 ? OnOffType.ON : OnOffType.OFF)
-                        : (autoStatus2 ? OnOffType.ON : OnOffType.OFF);
+            switch (chId) {
+                case "port1" -> {
+                    if (modType.equals("2q250m")) {
 
-                updateState(new ChannelUID(getThing().getUID(), "port1"), port1State);
-                updateState(new ChannelUID(getThing().getUID(), "port2"), port2State);
+                        // Get value (0..1) of bit 0
+                        boolean Status1 = (feedback1 & 1) != 0;
+                        updateState(chUid, (Status1 ? OnOffType.ON : OnOffType.OFF));
+                    }
+                    if (modType.equals("3qm3")) {
 
+                        // Get values (0..3) of bit 0+1
+                        int Status1 = (feedback1 & 3);
+                        updateState(chUid, new DecimalType(Status1));
+                    }
+                }
+                case "port2" -> {
+                    if (modType.equals("2q250m")) {
+
+                        // Get value (0..1) of bit 0
+                        boolean Status2 = (feedback2 & 1) != 0;
+                        updateState(chUid, (Status2 ? OnOffType.ON : OnOffType.OFF));
+                    }
+                }
+                case "mode1" -> {
+                    updateState(chUid, new StringType(mode1 ? "HAND" : "AUTO"));
+                }
+                case "mode2" -> {
+                    updateState(chUid, new StringType(mode2 ? "HAND" : "AUTO"));
+                }
             }
         }
     }

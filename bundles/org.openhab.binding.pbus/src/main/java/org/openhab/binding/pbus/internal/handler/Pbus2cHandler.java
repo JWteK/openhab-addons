@@ -14,13 +14,16 @@ package org.openhab.binding.pbus.internal.handler;
 
 import static org.openhab.binding.pbus.internal.PbusBindingConstants.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.pbus.internal.PbusPacket;
-import org.openhab.binding.pbus.internal.config.Pbus2cConfig;
+import org.openhab.binding.pbus.internal.config.PbusBasicConfig;
 import org.openhab.core.library.types.DecimalType;
+import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -42,129 +45,175 @@ public class Pbus2cHandler extends PbusThingHandler {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    /** Ondersteunde sensortypen (thing types) */
+    // Things handled by this class
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES = Set.of(THING_2C);
 
-    /** Configuratie voor de 2C module */
-    private @Nullable Pbus2cConfig config;
+    private @Nullable PbusBasicConfig config;
 
     public Pbus2cHandler(Thing thing) {
         super(thing);
     }
 
-    // Round given number to 2 decimal places
-    public static double rnd(double num, int dec) {
-        return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-    }
-
-    // Wordt aangeroepen door OH aanmaken van thing
+    // Called by OH core when creating thing
     @Override
     public void initialize() {
-        // Basis-initialisatie uitvoeren
+
+        // Basic init
         super.initialize();
 
-        // Config ophalen
-        this.config = getConfigAs(Pbus2cConfig.class);
+        // Get config
+        config = getConfigAs(PbusBasicConfig.class);
 
-        // Haal interval en start refresh
+        // Start refresh job if needed
         int interval = Math.max(0, config.refresh);
         logger.debug("Try to start Refresh job");
         startRefreshJob(interval);
-    }
 
-    // Wordt aangeroepen door OH refresh of commando vanuit UI of rules
-    @Override
-    public void handleCommand(ChannelUID channelUID, Command command) {
+        // If not exist create counter properties to store cuurent values
+        Map<String, String> props = editProperties();
+        props.putIfAbsent("port1LastValue", "0");
+        props.putIfAbsent("port2LastValue", "0");
+        updateProperties(props);
 
-        // Alleen RefreshType commando’s afhandelen
-        if (!(command instanceof RefreshType)) {
-            return;
+        // Get current values from counterproperties
+        String p1 = getThing().getProperties().get("port1LastValue");
+        if (p1 != null) {
+            updateState("port1", new DecimalType(Long.parseLong(p1)));
         }
-        performRefreshTick();
+
+        String p2 = getThing().getProperties().get("port2LastValue");
+        if (p2 != null) {
+            updateState("port2", new DecimalType(Long.parseLong(p2)));
+        }
     }
 
+    // Called by OH core on refresh tick and manual refresh
     @Override
     protected void performRefreshTick() {
 
-        // Bridge ophalen
+        // Check if bridge and handler OK
         PbusBridgeHandler bridge = getPbusBridgeHandler();
-
-        // Geen bridge = offline status
         if (bridge == null) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
             return;
         }
 
-        // Statusrequest sturen naar moduleadres
+        // Request Counter status
         byte addr = getModuleAddress().getAddress();
-        PbusPacket packet = new PbusPacket(addr, COUNTER_STATUS_REQUEST);
-
+        PbusPacket packet = new PbusPacket(addr, ANALOG_STATUS_REQUEST);
         bridge.sendPacket(packet.getBytes());
         logger.trace("Sent CouterStatusRequest packet to {}", addr);
     }
 
+    // Called by OH core from UI or Rule
+    @Override
+    public void handleCommand(ChannelUID channelUID, Command command) {
+
+        // Check if bridge and handler OK
+        PbusBridgeHandler bridge = getPbusBridgeHandler();
+        if (bridge == null) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.BRIDGE_OFFLINE);
+            return;
+        }
+
+        switch (command) {
+
+            // Used to perform a manual refresh
+            case RefreshType refreshType -> {
+                performRefreshTick();
+            }
+            // Used to set initial counter value from rule or UI
+            case DecimalType decimalType -> {
+
+                String chId = channelUID.getId();
+
+                // Set new value
+                updateState(chId, new DecimalType(decimalType.longValue()));
+
+                // Store same value in thing properties
+                Map<String, String> props = editProperties();
+                props.put(chId + "LastValue", Long.toString(decimalType.longValue()));
+                updateProperties(props);
+            }
+            default -> logger.debug("The command '{}' is not supported by this handler.", command.getClass());
+        }
+    }
+
+    // Called when a data package is arrived for this handler
     @Override
     public void onPacketReceived(byte[] packet) {
 
-        // Controleren of het commando klopt
-        if (packet[3] != COUNTER_STATUS_ANSWER) {
+        byte address = packet[1];
+        byte command = packet[3];
+
+        // Check if module must be removed, remove module from listners and set to offline
+        if ((packet.length == 7) & (command == MODULE_REMOVED)) {
+            PbusBridgeHandler bridge = getPbusBridgeHandler();
+            if (bridge != null) {
+                // Remove from packetlistners
+                bridge.unregisterPacketListener(address);
+            }
+            // Set to OffLine (Returns to OnLine after restart, so remove manualy)
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE, "(Remove thing manualy)");
+            return;
+        }
+
+        // Check if length is correct
+        if (packet.length != 10) {
+            logger.debug("onPacketReceived called with wrong length for {}", getThing().getUID());
+            return;
+        }
+
+        // Check if command is correct
+        if (command != ANALOG_STATUS_ANSWER) {
             logger.debug("onPacketReceived called for {} with wrong command", getThing().getUID());
             return;
         }
 
-        // Controleren of de lengte klopt
-        if (packet.length != 11) {
-            logger.debug("onPacketReceived called for {} with wrong length", getThing().getUID());
-            return;
-        }
+        // Get all channels from thing
+        List<Channel> channels = getThing().getChannels();
 
-        logger.debug("onPacketReceived called for {}", getThing().getUID());
+        logger.debug("Received packet ({} bytes) for thing {} with {} channels", packet.length, getThing().getUID(),
+                channels.size());
 
-        // Kanaal bepalen (1 of 2)
-        int channel = packet[4];
+        // Loop through all channels
+        for (Channel channel : channels) {
 
-        // Counterwaarde (4 bytes samenvoegen als unsigned long)
-        long raw = ((packet[5] & 0xFFL) << 24) | ((packet[6] & 0xFFL) << 16) | ((packet[7] & 0xFFL) << 8)
-                | (packet[8] & 0xFFL);
+            ChannelUID chUid = channel.getUID();
+            String chId = chUid.getId();
 
-        // Afhankelijk van het kanaal de juiste berekening doen
-        switch (channel) {
-            case 1 -> {
+            long raw = 0;
 
-                // Maak Channel UID voor counter 1
-                ChannelUID cntr1 = new ChannelUID(thing.getUID(), "port1");
-
-                // Kanaal 1: pulsen per unit bepalen (standaard of custom) en afronding
-                double ppu = config.port1Ppu != 0 ? config.port1Ppu : config.port1PpuCustom;
-                int round = config.port1Round;
-
-                // Waarde berekenen en afronden
-                double value = rnd(raw / ppu, round);
-
-                // State updaten en loggen
-                updateState(cntr1, new DecimalType(value));
-                logger.debug("Updated {} to {}", cntr1, String.format("%." + round + "f", value));
-            }
-            case 2 -> {
-
-                // Maak Channel UID voor counter 2
-                ChannelUID cntr2 = new ChannelUID(thing.getUID(), "port2");
-
-                // Kanaal 2:pulsen per unit bepalen (standaard of custom) en afronding
-                double ppu = config.port2Ppu != 0 ? config.port2Ppu : config.port2PpuCustom;
-                int round = config.port2Round;
-
-                // Waarde berekenen en afronden
-                double value = rnd(raw / ppu, round);
-
-                // State updaten en loggen
-                updateState(cntr2, new DecimalType(value));
-                logger.debug("Updated {} to {}", cntr2, String.format("%." + round + "f", value));
+            switch (chId) {
+                case "port1" -> {
+                    raw = ((packet[4] & 0xFFL) << 8) | (packet[5] & 0xFFL);
+                }
+                case "port2" -> {
+                    raw = ((packet[6] & 0xFFL) << 8) | (packet[7] & 0xFFL);
+                }
+                default -> {
+                    logger.debug("Unexpected channel {} in", chUid);
+                    return;
+                }
             }
 
-            default -> {
-                // Onbekend kanaal → waarschuwing loggen
-                logger.warn("Unexpected channel {} in COUNTER_STATUS_ANSWER", channel);
+            // Update only if channel is linked
+            if (isLinked(chId)) {
+
+                // Get the old value and add the new received value
+                long oldValue = Long.parseLong(getThing().getProperties().getOrDefault(chId + "LastValue", "0"));
+                long totalValue = oldValue + raw;
+
+                // Update state and propertie
+                updateState(chUid, new DecimalType(totalValue));
+
+                Map<String, String> props = editProperties();
+                props.put(chId + "LastValue", Long.toString(totalValue));
+                updateProperties(props);
+
+                logger.debug("Updated {} to {}", chUid, totalValue);
+            } else {
+                logger.debug("Channel {} not linked", chUid);
             }
         }
     }

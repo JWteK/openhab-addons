@@ -26,25 +26,24 @@
 	</channel-type>
 
 	<channel-type id="status-voltage1">
-		<item-type>Contact</item-type>
+		<item-type>Switch</item-type>
 		<label>Port 1 Status</label>
-		<description> Voltage signaling (UNPOWERED/POWERED)</description>
-		<state>
+		<description> Voltage detection (UNPOWERED/POWERED)</description>
+		<state readOnly="true">
 			<options>
-				<option value="OPEN">UNPOWERED</option>
-				<option value="CLOSED">POWERED</option>
+				<option value="OFF">UNPOWERED</option>
+				<option value="ON">POWERED</option>
 			</options>
 		</state>
-
 	</channel-type>
 	<channel-type id="status-voltage2">
 		<item-type>Switch</item-type>
 		<label>Port 2 Status</label>
 		<description> Voltage detection (UNPOWERED/POWERED)</description>
-		<state>
+		<state readOnly="true">
 			<options>
-				<option value="OPEN">UNPOWERED</option>
-				<option value="CLOSED">POWERED</option>
+				<option value="OFF">UNPOWERED</option>
+				<option value="ON">POWERED</option>
 			</options>
 		</state>
 	</channel-type>
@@ -62,7 +61,7 @@
 
 	<channel-type id="raw-value1">
 		<item-type>Number</item-type>
-		<label>Port1 value</label>
+		<label>Port 1 value</label>
 		<description>Raw value from analog input 1</description>
 		<state pattern="%.0f"/>
 	</channel-type>
@@ -99,25 +98,25 @@
 	</channel-type>
 
 	<channel-type id="percentage1">
-		<item-type>Number:Dimensionless</item-type>
-		<label>Percentage 1</label>
-		<description>Current percentage</description>
-		<category>Percentage</category>
+		<item-type>Dimmer</item-type>
+		<label>Analog output 1</label>
+		<description>0–100% analog output</description>
+		<category>Settings</category>
 	</channel-type>
 	<channel-type id="percentage2">
-		<item-type>Number:Dimensionless</item-type>
-		<label>Percentage 2</label>
-		<description>Current percentage</description>
-		<category>Percentage</category>
+		<item-type>Dimmer</item-type>
+		<label>Analog output 2</label>
+		<description>0–100% analog output</description>
+		<category>Settings</category>
 	</channel-type>
 
-	<channel-type id="hand1">
+	<channel-type id="mode1">
 		<item-type>String</item-type>
-		<label>Port 1 Hand status</label>
+		<label>Port 1 mode</label>
 	</channel-type>
-	<channel-type id="hand2">
+	<channel-type id="mode2">
 		<item-type>String</item-type>
-		<label>Port 2 Hand status</label>
+		<label>Port 2 mode</label>
 	</channel-type>
 
 </thing:thing-descriptions>

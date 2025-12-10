@@ -15,18 +15,11 @@ package org.openhab.binding.pbus.internal.config;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 
 /**
- * The {@link Pbus2cConfig} class represents the configuration of a Pbus 2c module.
+ * The {@link PbusBasicConfig} class represents the configuration of a Pbus Sensor.
  *
  * @author JWteK - Initial contribution
  */
 @NonNullByDefault
-public class Pbus2cConfig {
+public class PbusBasicConfig {
     public int refresh;
-    public double port1Ppu;
-    public double port1PpuCustom;
-    public int port1Round;
-
-    public double port2Ppu;
-    public double port2PpuCustom;
-    public int port2Round;
 }

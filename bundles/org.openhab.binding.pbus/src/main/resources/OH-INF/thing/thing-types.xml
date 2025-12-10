@@ -12,13 +12,13 @@
 		</supported-bridge-type-refs>
 
 		<label>2C</label>
-		<description>Pbus 2-port pulse counter (max value 4.294.967.295) </description>
+		<description>Pbus 2-port pulse counter (add each new value (0-65535) )</description>
 		<channels>
 			<channel id="port1" typeId="counter1"/>
 			<channel id="port2" typeId="counter2"/>
 		</channels>
 
-		<config-description-ref uri="thing-type:pbus:2c"/>
+		<config-description-ref uri="thing-type:pbus:2portDevice"/>
 
 	</thing-type>
 
@@ -101,7 +101,7 @@
 		</supported-bridge-type-refs>
 
 		<label>2R1K</label>
-		<description>Pbus 2-port resistor input for LG Ni1000 (RAW value)</description>
+		<description>Pbus 2-port resistor input for LG Ni1000 (RAW (0-4095) value)</description>
 		<channels>
 			<channel id="port1" typeId="raw-value1"/>
 			<channel id="port2" typeId="raw-value2"/>
@@ -118,7 +118,7 @@
 		</supported-bridge-type-refs>
 
 		<label>2U10</label>
-		<description>Pbus 2-port analog input 0-10V (RAW value)</description>
+		<description>Pbus 2-port analog input 0-10V (RAW (0-8191) value)</description>
 		<channels>
 			<channel id="port1" typeId="raw-value1"/>
 			<channel id="port2" typeId="raw-value2"/>
@@ -135,7 +135,7 @@
 		</supported-bridge-type-refs>
 
 		<label>2P100</label>
-		<description>Pbus 2-port resistor input 0-250Ω, Pt100 or Ni100 (RAW value)</description>
+		<description>Pbus 2-port resistor input 0-250Ω, Pt100 or Ni100 (RAW (0-8191) value)</description>
 		<channels>
 			<channel id="port1" typeId="raw-value1"/>
 			<channel id="port2" typeId="raw-value2"/>
@@ -152,7 +152,7 @@
 		</supported-bridge-type-refs>
 
 		<label>2I25</label>
-		<description>Pbus 2-port analog input 0-25 mA (RAW value)</description>
+		<description>Pbus 2-port analog input 0-25 mA (RAW (0-8191) value)</description>
 		<channels>
 			<channel id="port1" typeId="raw-value1"/>
 			<channel id="port2" typeId="raw-value2"/>
@@ -169,7 +169,7 @@
 		</supported-bridge-type-refs>
 
 		<label>2P1K</label>
-		<description>Pbus 2-port resistor input 0-2500Ω, Pt1000 or Ni1000 (RAW value)</description>
+		<description>Pbus 2-port resistor input 0-2500Ω, Pt1000 or Ni1000 (RAW (0-8191) value)</description>
 		<channels>
 			<channel id="port1" typeId="raw-value1"/>
 			<channel id="port2" typeId="raw-value2"/>
@@ -186,7 +186,7 @@
 		</supported-bridge-type-refs>
 
 		<label>2I420</label>
-		<description>Pbus 2-port analog input 4-20 mA (RAW value)</description>
+		<description>Pbus 2-port analog input 4-20 mA (RAW (0-8191) value)</description>
 		<channels>
 			<channel id="port1" typeId="raw-value1"/>
 			<channel id="port2" typeId="raw-value2"/>
@@ -221,12 +221,12 @@
 		</supported-bridge-type-refs>
 
 		<label>2Q250M</label>
-		<description>Pbus 2-port relay output with Manual control</description>
+		<description>Pbus 2-port relay output with manual control</description>
 		<channels>
 			<channel id="port1" typeId="switch1"/>
 			<channel id="port2" typeId="switch2"/>
-			<channel id="hand1" typeId="hand1"/>
-			<channel id="hand2" typeId="hand2"/>
+			<channel id="mode1" typeId="mode1"/>
+			<channel id="mode2" typeId="mode2"/>
 		</channels>
 
 		<config-description-ref uri="thing-type:pbus:2portDevice"/>
@@ -240,10 +240,10 @@
 		</supported-bridge-type-refs>
 
 		<label>3QM3</label>
-		<description>Pbus 1-port 3-stage (0-3) relay output with Manual control</description>
+		<description>Pbus 1-port 3-stage (0-3) relay output with manual control</description>
 		<channels>
 			<channel id="port1" typeId="3stageOut"/>
-			<channel id="hand1" typeId="hand1"/>
+			<channel id="mode1" typeId="mode1"/>
 		</channels>
 
 		<config-description-ref uri="thing-type:pbus:1portDevice"/>
@@ -251,5 +251,57 @@
 	</thing-type>
 
 	<!-- AO ============================================================================================ AO -->
+	<thing-type id="2y10">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2Y10</label>
+		<description>Pbus 2-port 0-10V output</description>
+		<channels>
+			<channel id="port1" typeId="percentage1"/>
+			<channel id="port2" typeId="percentage2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDeviceAO"/>
+
+	</thing-type>
+
+	<thing-type id="2y420">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2Y420</label>
+		<description>Pbus 2-port 4-20mA output</description>
+		<channels>
+			<channel id="port1" typeId="percentage1"/>
+			<channel id="port2" typeId="percentage2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDeviceAO"/>
+
+	</thing-type>
+
+	<thing-type id="2y10m">
+		<supported-bridge-type-refs>
+			<bridge-type-ref id="serialbridge"/>
+			<bridge-type-ref id="networkbridge"/>
+		</supported-bridge-type-refs>
+
+		<label>2Y10M</label>
+		<description>Pbus 2-port 0-10V output with manual control</description>
+		<channels>
+			<channel id="port1" typeId="percentage1"/>
+			<channel id="port2" typeId="percentage2"/>
+			<channel id="mode1" typeId="mode1"/>
+			<channel id="mode2" typeId="mode2"/>
+		</channels>
+
+		<config-description-ref uri="thing-type:pbus:2portDeviceAO"/>
+
+	</thing-type>
 
 </thing:thing-descriptions>

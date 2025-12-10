@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.pbus.internal.PbusPacket;
 import org.openhab.binding.pbus.internal.PbusPacketInputStream;
 import org.openhab.binding.pbus.internal.PbusPacketListener;
 import org.openhab.binding.pbus.internal.config.PbusBridgeConfig;
@@ -119,12 +120,23 @@ public abstract class PbusBridgeHandler extends BaseBridgeHandler {
 
         byte address = packet[1];
 
+        // Check if first byte of received message is STX
+        if (packet[0] != PbusPacket.STX) {
+            logger.debug("message received with wrong start byte");
+            return;
+        }
+
+        // If addres in packetlistners call corrosponding onPacketReceived
         if (packetListeners.containsKey(address)) {
             logger.debug("Packet with existing address '{}' handle thing message", address);
+
             PbusPacketListener packetListener = packetListeners.get(address);
             packetListener.onPacketReceived(packet);
+
+            // If addres NOT in packetlistners call ThingDiscpvery.onPacketReceived
         } else {
-            logger.debug("Packet with NON existing address '{}' register new thing", address);
+            logger.debug("Packet with NON existing address '{}' try to register new thing", address);
+
             final PbusPacketListener defaultPacketListener = this.defaultPacketListener;
             if (defaultPacketListener != null) {
                 defaultPacketListener.onPacketReceived(packet);
@@ -233,9 +245,11 @@ public abstract class PbusBridgeHandler extends BaseBridgeHandler {
 
     public void registerPacketListener(byte address, PbusPacketListener packetListener) {
         packetListeners.put(address, packetListener);
+        logger.debug("PacketListener added for address {}", address);
     }
 
-    public void unregisterRelayStatusListener(byte address) {
+    public void unregisterPacketListener(byte address) {
         packetListeners.remove(address);
+        logger.debug("PacketListener removed for address {}", address);
     }
 }

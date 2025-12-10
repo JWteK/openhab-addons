@@ -5,7 +5,10 @@
 
 	<type>binding</type>
 	<name>Pbus Binding</name>
-	<description>This is the binding for Siemens PTM modules on Pbus. It needs a DR-PTMod module with adapted firmware.</description>
+	<description>
+        This is the binding for Siemens PTM modules on Pbus. It needs a DR-PTMod module with adapted firmware.
+        Documentation: https://github.com/jouwrepo/pbus-binding#readme
+    </description>
 	<connection>local</connection>
 
 </addon:addon>

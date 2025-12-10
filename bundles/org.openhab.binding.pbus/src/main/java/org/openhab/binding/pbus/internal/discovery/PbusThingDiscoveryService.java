@@ -74,7 +74,7 @@ public class PbusThingDiscoveryService extends AbstractDiscoveryService
 
         for (int i = 1; i <= 64; i++) {
 
-            PbusPacket packet = new PbusPacket((byte) i, MODULE_TYPE_REQUEST, ALL_CHANNELS);
+            PbusPacket packet = new PbusPacket((byte) i, MODULE_TYPE_REQUEST);
 
             if (pbusBridgeHandler != null) {
                 pbusBridgeHandler.sendPacket(packet.getBytes());
@@ -83,27 +83,25 @@ public class PbusThingDiscoveryService extends AbstractDiscoveryService
     }
 
     @Override
-    // Called when receiving a not existing adress
+    // Called when receiving a not existing adress - Register new thing
     public void onPacketReceived(byte[] packet) {
-        if (packet[0] == PbusPacket.STX && packet.length >= 4) {
-            byte address = packet[1];
-            byte length = packet[2];
-            byte command = packet[3];
 
-            if (command != MODULE_TYPE_ANSWER) {
-                logger.error("Packet has wrong command '{}' instead of {})", String.format("%02X", command),
-                        String.format("%02X", MODULE_TYPE_ANSWER));
-                return;
-            }
+        byte address = packet[1];
+        byte command = packet[3];
 
-            if (length != 2) {
-                logger.error("Data has wrong length {} instead of 2", length);
-                return;
-            }
-
-            handleModuleTypeCommand(packet, address);
-
+        // Check if length is correct
+        if (packet.length != 7) {
+            logger.debug("onPacketReceived called to register with wrong length");
+            return;
         }
+
+        if (command != MODULE_TYPE_ANSWER) {
+            logger.error("Packet has wrong command '{}' instead of {}", String.format("%02X", command),
+                    String.format("%02X", MODULE_TYPE_ANSWER));
+            return;
+        }
+
+        handleModuleTypeCommand(packet, address);
     }
 
     private void handleModuleTypeCommand(byte[] packet, byte address) {
@@ -114,7 +112,7 @@ public class PbusThingDiscoveryService extends AbstractDiscoveryService
             case MODULE_2C -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2C);
             case MODULE_2D20 -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2D20);
             case MODULE_2R1K -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2R1K);
-            case MODULE_2Y10S -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2Y10S);
+            case MODULE_2Y10 -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2Y10);
             case MODULE_2U10 -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2U10);
             case MODULE_2Y10M -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2Y10M);
             case MODULE_2P100 -> new PbusModule(new PbusModuleAddress(address), moduleType, THING_2P100);
@@ -132,6 +130,9 @@ public class PbusThingDiscoveryService extends AbstractDiscoveryService
 
         if (pbusModule != null) {
             registerPbusModule(address, pbusModule);
+        } else {
+            logger.error("Packet has wrong module type '{}'", String.format("%02X", moduleType));
+
         }
     }
 

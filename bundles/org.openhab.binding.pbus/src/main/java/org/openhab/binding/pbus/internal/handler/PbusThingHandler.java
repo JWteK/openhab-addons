@@ -12,7 +12,7 @@
  */
 package org.openhab.binding.pbus.internal.handler;
 
-import static org.openhab.binding.pbus.internal.PbusBindingConstants.SENSOR_STATUS_REQUEST;
+import static org.openhab.binding.pbus.internal.PbusBindingConstants.DIGITAL_STATUS_REQUEST;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +44,7 @@ import org.slf4j.LoggerFactory;
 @NonNullByDefault
 public abstract class PbusThingHandler extends BaseThingHandler implements PbusPacketListener {
 
-    // Hier geen getClass() gebruikende voor de duidelijkheid bij de logs
-    private final Logger logger = LoggerFactory.getLogger(PbusThingHandler.class);
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /** Configuratie van dit Thing (wordt gevuld tijdens initialize()) */
     protected @Nullable PbusThingConfig pbusThingConfig;
@@ -86,7 +85,7 @@ public abstract class PbusThingHandler extends BaseThingHandler implements PbusP
         // Bij verwijderen: listeners deregistreren bij bridge
         if (pbusBridgeHandler != null && pbusModuleAddress != null) {
             for (byte address : pbusModuleAddress.getActiveAddresses()) {
-                pbusBridgeHandler.unregisterRelayStatusListener(address);
+                pbusBridgeHandler.unregisterPacketListener(address);
             }
         }
         super.handleRemoval();
@@ -100,6 +99,18 @@ public abstract class PbusThingHandler extends BaseThingHandler implements PbusP
             logger.debug("Cancelled refresh job for {}", getThing().getUID());
         }
         super.dispose();
+    }
+
+    @Override
+    public void channelLinked(ChannelUID channelUID) {
+        // BaseThninHandler throws a refresh for every linked channel. To avoid refresh, this override
+        logger.debug("Channel {} is linked", channelUID);
+    }
+
+    @Override
+    public void channelUnlinked(ChannelUID channelUID) {
+        // BaseThninHandler does nothing this is just for info
+        logger.debug("Channel {} is unlinked", channelUID);
     }
 
     /**
@@ -117,7 +128,22 @@ public abstract class PbusThingHandler extends BaseThingHandler implements PbusP
             return;
         }
 
-        // Nieuwe job starten
+        if (intervalSeconds == 1) {
+
+            scheduler.execute(() -> {
+                try {
+                    performRefreshTick();
+                } catch (Exception e) {
+                    logger.warn("Exception during initial refresh for {}", getThing().getUID(), e);
+                }
+            });
+
+            logger.debug("Initial refresh send (interval = 1) for {}", getThing().getUID());
+
+            return;
+        }
+
+        // Start new refresh job
         refreshJob = scheduler.scheduleWithFixedDelay(() -> {
             try {
                 performRefreshTick();
@@ -126,7 +152,7 @@ public abstract class PbusThingHandler extends BaseThingHandler implements PbusP
             }
         }, 0, intervalSeconds, TimeUnit.SECONDS);
 
-        logger.debug("Started refresh job ({}s) for {}", intervalSeconds, getThing().getUID());
+        logger.debug("Refresh job ({}s) started for {}", intervalSeconds, getThing().getUID());
     }
 
     /** Door subklassen te implementeren: refresh-gedrag (bijv. statusrequest sturen). */
@@ -228,7 +254,7 @@ public abstract class PbusThingHandler extends BaseThingHandler implements PbusP
 
             // Statusrequest sturen naar moduleadres
             byte addr = getModuleAddress().getAddress();
-            PbusPacket packet = new PbusPacket(addr, SENSOR_STATUS_REQUEST);
+            PbusPacket packet = new PbusPacket(addr, DIGITAL_STATUS_REQUEST);
         }
     }
 
@@ -236,6 +262,7 @@ public abstract class PbusThingHandler extends BaseThingHandler implements PbusP
      * Haalt of initialiseert de bridge handler en registreert listeners.
      */
     protected synchronized @Nullable PbusBridgeHandler getPbusBridgeHandler() {
+
         if (pbusBridgeHandler != null)
             return pbusBridgeHandler;
 
